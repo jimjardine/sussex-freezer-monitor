@@ -1,0 +1,4 @@
+requests>=2.31
+gpiozero>=2.0
+# gpiozero needs a pin backend on the Pi; lgpio is the default on Pi OS Bookworm.
+lgpio>=0.2; platform_machine == "aarch64" or platform_machine == "armv7l"

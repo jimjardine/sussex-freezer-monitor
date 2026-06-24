@@ -1,0 +1,11 @@
+{
+  "supabase_url": "https://YOUR-PROJECT.supabase.co",
+  "supabase_service_key": "YOUR_SERVICE_ROLE_KEY",
+
+  "mock_gpio": false,
+  "poll_seconds": 1.0,
+  "heartbeat_seconds": 60.0,
+  "settings_refresh_seconds": 120.0,
+
+  "outbox_path": "outbox.db"
+}

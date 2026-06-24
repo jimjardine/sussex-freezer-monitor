@@ -1,0 +1,16 @@
+# Secrets & local runtime files — NEVER commit these.
+# (pi/config.json holds the Supabase service-role key on the real Pi.)
+pi/config.json
+pi/outbox.db
+*.db
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# NOTE: web/config.js IS committed on purpose — it only holds the public
+# Supabase URL + publishable key, which are safe in the browser.

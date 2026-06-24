@@ -1,0 +1,16 @@
+[Unit]
+Description=Sussex Ice Cream Freezer Door Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/freezer-monitor/pi
+ExecStart=/home/pi/freezer-monitor/.venv/bin/python /home/pi/freezer-monitor/pi/door_monitor.py
+Restart=always
+RestartSec=5
+Environment=FREEZER_CONFIG=/home/pi/freezer-monitor/pi/config.json
+
+[Install]
+WantedBy=multi-user.target

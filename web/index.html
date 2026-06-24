@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sussex Ice Cream — Freezer Monitor</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Login -->
+    <div id="login" class="login hidden">
+      <form id="login-form" class="login-card">
+        <h1>❄️ Freezer Monitor</h1>
+        <p class="muted">Sussex Ice Cream</p>
+        <input id="email" type="email" placeholder="Email" autocomplete="username" required />
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password" required />
+        <button type="submit">Log in</button>
+        <p id="login-error" class="error"></p>
+      </form>
+    </div>
+
+    <!-- App -->
+    <div id="app" class="hidden">
+      <header>
+        <div class="brand">❄️ Freezer Monitor <span class="muted">· Sussex Ice Cream</span></div>
+        <div class="header-right">
+          <span id="pi-status" class="badge badge-unknown">Pi: …</span>
+          <button id="logout" class="link">Log out</button>
+        </div>
+      </header>
+
+      <nav class="tabs">
+        <button class="tab active" data-tab="live">Live</button>
+        <button class="tab" data-tab="history">History</button>
+        <button class="tab" data-tab="settings">Settings</button>
+      </nav>
+
+      <main>
+        <!-- Live -->
+        <section id="tab-live" class="tab-panel">
+          <div id="doors" class="door-grid"></div>
+        </section>
+
+        <!-- History -->
+        <section id="tab-history" class="tab-panel hidden">
+          <div class="filters">
+            <select id="history-door"><option value="">All doors</option></select>
+            <button id="history-refresh" class="link">Refresh</button>
+          </div>
+          <table class="events">
+            <thead>
+              <tr><th>When</th><th>Door</th><th>Event</th><th>Duration</th></tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+          </table>
+        </section>
+
+        <!-- Settings -->
+        <section id="tab-settings" class="tab-panel hidden">
+          <h2>Alert recipients</h2>
+          <p class="muted">Comma-separated email addresses that receive door + offline alerts.</p>
+          <textarea id="emails" rows="2" placeholder="ops@sussexicecream.com, owner@…"></textarea>
+          <button id="save-emails">Save recipients</button>
+          <span id="settings-saved" class="saved"></span>
+
+          <h2>Doors</h2>
+          <table class="doors-settings">
+            <thead>
+              <tr><th>Name</th><th>GPIO pin</th><th>Open limit (min)</th><th>Enabled</th></tr>
+            </thead>
+            <tbody id="doors-settings-body"></tbody>
+          </table>
+          <button id="save-doors">Save doors</button>
+          <span id="doors-saved" class="saved"></span>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
