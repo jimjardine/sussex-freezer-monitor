@@ -51,7 +51,10 @@ serve(async () => {
     .limit(1);
 
   const lastAlertAt = lastAlert?.[0]?.created_at ? new Date(lastAlert[0].created_at) : null;
-  const alreadyAlerted = lastAlertAt && lastSeen && lastAlertAt > lastSeen;
+  // Skip if we've already alerted for this outage. When the Pi has NEVER sent a
+  // heartbeat (lastSeen == null), any prior alert counts — otherwise we'd email
+  // every run. A fresh heartbeat (lastSeen > lastAlertAt) re-arms the next alert.
+  const alreadyAlerted = lastAlertAt && (!lastSeen || lastAlertAt > lastSeen);
 
   if (alreadyAlerted) {
     return json({ offline: true, already_alerted: true });
