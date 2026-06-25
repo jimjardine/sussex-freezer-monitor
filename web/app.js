@@ -52,6 +52,12 @@ async function showApp() {
   subscribeRealtime();
   tickTimer = setInterval(tick, 1000);
   setInterval(refreshPiStatus, 15000);
+  // Poll latest door states as a robust fallback to realtime (refreshes the
+  // Live cards within a few seconds even if the realtime push doesn't arrive).
+  setInterval(async () => {
+    await loadLatestEvents();
+    tick();
+  }, 4000);
 }
 
 // --------------------------------------------------------------------------- //
