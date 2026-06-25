@@ -195,6 +195,7 @@ class Monitor:
         self.doors: dict[str, Door] = {}
         self._events: "queue.Queue[tuple]" = queue.Queue()
         self._stop = threading.Event()
+        self._wake_flusher = threading.Event()  # set when a new event needs uploading
 
     # -- setup ------------------------------------------------------------- #
 
@@ -273,7 +274,8 @@ class Monitor:
                 pass
             # Check open-too-long for every open door.
             self._check_thresholds()
-            self._stop.wait(self.poll_seconds)
+            # Poll GPIO frequently for snappy response (cap config value at 0.2s).
+            self._stop.wait(min(self.poll_seconds, 0.2))
 
     def _record_initial_states(self) -> None:
         now = time.monotonic()
@@ -318,6 +320,7 @@ class Monitor:
 
     def _log_event(self, door: Door, event_type: str, duration: int | None = None) -> None:
         self.outbox.add(door.id, event_type, iso_now(), duration)
+        self._wake_flusher.set()  # push to Supabase immediately, don't wait for the timer
 
     def _send_alert(self, door: Door, open_for: int) -> None:
         minutes = open_for // 60
@@ -356,7 +359,9 @@ class Monitor:
                     self.outbox.mark_synced(row_id)
                 except Exception:
                     break  # network down — try again next tick
-            self._stop.wait(2.0)
+            # Wake immediately when a new event is logged; otherwise re-check every 2s.
+            self._wake_flusher.wait(2.0)
+            self._wake_flusher.clear()
 
     def _heartbeat_loop(self) -> None:
         while not self._stop.is_set():

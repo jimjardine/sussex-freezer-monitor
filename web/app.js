@@ -53,11 +53,11 @@ async function showApp() {
   tickTimer = setInterval(tick, 1000);
   setInterval(refreshPiStatus, 15000);
   // Poll latest door states as a robust fallback to realtime (refreshes the
-  // Live cards within a few seconds even if the realtime push doesn't arrive).
+  // Live cards quickly even if the realtime push doesn't arrive).
   setInterval(async () => {
     await loadLatestEvents();
     tick();
-  }, 4000);
+  }, 1500);
 }
 
 // --------------------------------------------------------------------------- //
@@ -98,7 +98,7 @@ async function loadLatestEvents() {
     .from("door_events")
     .select("door_id, event_type, created_at, duration_seconds")
     .order("created_at", { ascending: false })
-    .limit(500);
+    .limit(50);
   lastEventByDoor = {};
   for (const ev of data || []) {
     if (!lastEventByDoor[ev.door_id]) lastEventByDoor[ev.door_id] = ev;
