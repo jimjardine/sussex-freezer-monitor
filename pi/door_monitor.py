@@ -228,11 +228,12 @@ class Monitor:
 
         for door in self.doors.values():
             # pull_up=True: pin idles HIGH; pressed (LOW) == door closed.
-            btn = Button(door.gpio_pin, pull_up=True, bounce_time=0.1)
+            # We poll is_pressed in the main loop rather than using edge callbacks
+            # (when_pressed/when_released occasionally miss transitions); polling
+            # the level every cycle is rock-solid, like pinscan.py.
+            btn = Button(door.gpio_pin, pull_up=True, bounce_time=0.05)
             door._button = btn
             door.is_open = not btn.is_pressed  # pressed == closed
-            btn.when_pressed = self._make_handler(door.id, opened=False)   # door closed
-            btn.when_released = self._make_handler(door.id, opened=True)   # door opened
             log(f"Door '{door.name}' on GPIO{door.gpio_pin}: {'OPEN' if door.is_open else 'closed'}")
 
     def _make_handler(self, door_id: str, opened: bool):
@@ -255,7 +256,15 @@ class Monitor:
 
         log("Monitor running.")
         while not self._stop.is_set():
-            # Drain transition events.
+            # Poll real GPIO levels and act on any change (robust vs edge callbacks).
+            if not self.mock:
+                for door in self.doors.values():
+                    if door._button is None:
+                        continue
+                    current_open = not door._button.is_pressed  # pressed == closed
+                    if current_open != door.is_open:
+                        self._on_transition(door.id, current_open)
+            # Drain mock transition events (keyboard-driven in mock mode).
             try:
                 while True:
                     door_id, opened, _ts = self._events.get_nowait()
