@@ -131,6 +131,15 @@ tbody tr:hover { background: #ffffff08; }
 .filters { display: flex; gap: 10px; align-items: center; }
 textarea { width: 100%; resize: vertical; }
 h2 { margin-top: 28px; }
+h3 { margin-top: 22px; margin-bottom: 6px; }
+
+.add-door { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.add-door input { flex: 0 0 auto; }
+#new-door-name { flex: 1 1 220px; min-width: 180px; }
+#new-door-pin { width: 90px; }
+#new-door-limit { width: 110px; }
+.s-delete { color: var(--bad); }
+code { background: #0f1a2e; padding: 1px 6px; border-radius: 6px; }
 
 @media (max-width: 600px) {
   main { padding: 14px; }

@@ -66,12 +66,22 @@
           <h2>Doors</h2>
           <table class="doors-settings">
             <thead>
-              <tr><th>Name</th><th>GPIO pin</th><th>Open limit (min)</th><th>Enabled</th></tr>
+              <tr><th>Name</th><th>GPIO pin</th><th>Open limit (min)</th><th>Enabled</th><th></th></tr>
             </thead>
             <tbody id="doors-settings-body"></tbody>
           </table>
           <button id="save-doors">Save doors</button>
           <span id="doors-saved" class="saved"></span>
+
+          <h3>Add a door</h3>
+          <p class="muted">Enter the plain GPIO/BCM number (e.g. <code>23</code>) — not the breakout's "IO" label.</p>
+          <div class="add-door">
+            <input id="new-door-name" placeholder="Name (e.g. Single Blast Freezer)" />
+            <input id="new-door-pin" type="number" min="0" max="27" placeholder="GPIO #" />
+            <input id="new-door-limit" type="number" min="1" value="5" title="Open limit (minutes)" />
+            <button id="add-door">Add door</button>
+            <span id="add-door-msg" class="saved"></span>
+          </div>
         </section>
       </main>
     </div>

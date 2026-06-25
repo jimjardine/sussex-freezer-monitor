@@ -117,11 +117,12 @@ function doorIsOpen(doorId) {
 function renderDoors() {
   const grid = $("#doors");
   grid.innerHTML = "";
-  if (doors.length === 0) {
-    grid.innerHTML = `<p class="muted">No doors configured yet. Add them in Settings (or seed the database).</p>`;
+  const liveDoors = doors.filter((d) => d.enabled);
+  if (liveDoors.length === 0) {
+    grid.innerHTML = `<p class="muted">No doors configured yet. Add them in Settings.</p>`;
     return;
   }
-  for (const d of doors) {
+  for (const d of liveDoors) {
     const card = document.createElement("div");
     card.className = "door-card";
     card.dataset.doorId = d.id;
@@ -263,9 +264,20 @@ async function renderSettings() {
       <td><input class="s-name" value="${escapeAttr(d.name)}" /></td>
       <td><input class="s-pin" type="number" value="${d.gpio_pin}" style="width:80px" /></td>
       <td><input class="s-limit" type="number" min="1" value="${Math.round(d.open_threshold_seconds / 60)}" style="width:80px" /></td>
-      <td><input class="s-enabled" type="checkbox" ${d.enabled ? "checked" : ""} /></td>`;
+      <td><input class="s-enabled" type="checkbox" ${d.enabled ? "checked" : ""} /></td>
+      <td><button class="link s-delete" title="Delete this door">🗑 Delete</button></td>`;
+    tr.querySelector(".s-delete").addEventListener("click", () => deleteDoor(d.id, d.name));
     body.appendChild(tr);
   }
+}
+
+async function deleteDoor(id, name) {
+  if (!confirm(`Delete "${name}"? This also removes its event history. The Pi stops monitoring it within ~2 min.`)) return;
+  const { error } = await sb.from("doors").delete().eq("id", id);
+  $("#doors-saved").textContent = error ? `Error: ${error.message}` : `Deleted "${name}" ✓`;
+  await loadAll();
+  renderSettings();
+  setTimeout(() => ($("#doors-saved").textContent = ""), 3500);
 }
 
 $("#save-emails").addEventListener("click", async () => {
@@ -289,6 +301,33 @@ $("#save-doors").addEventListener("click", async () => {
   $("#doors-saved").textContent = "Saved ✓ (Pi picks up changes within ~2 min)";
   await loadAll();
   setTimeout(() => ($("#doors-saved").textContent = ""), 3500);
+});
+
+$("#add-door").addEventListener("click", async () => {
+  const msg = $("#add-door-msg");
+  const name = $("#new-door-name").value.trim();
+  const pin = Number($("#new-door-pin").value);
+  const limitMin = Math.max(1, Number($("#new-door-limit").value) || 5);
+  if (!name) { msg.textContent = "Enter a name"; return; }
+  if (!Number.isInteger(pin) || pin < 0 || pin > 27) { msg.textContent = "GPIO must be 0–27 (e.g. 23)"; return; }
+
+  const { error } = await sb.from("doors").insert({
+    name,
+    gpio_pin: pin,
+    open_threshold_seconds: limitMin * 60,
+  });
+  if (error) {
+    // Most likely the unique-pin constraint (that pin already has a door).
+    msg.textContent = /duplicate|unique/i.test(error.message) ? `GPIO${pin} is already used by another door` : `Error: ${error.message}`;
+    return;
+  }
+  $("#new-door-name").value = "";
+  $("#new-door-pin").value = "";
+  $("#new-door-limit").value = "5";
+  msg.textContent = `Added "${name}" ✓ (Pi starts monitoring within ~2 min)`;
+  await loadAll();
+  renderSettings();
+  setTimeout(() => (msg.textContent = ""), 4000);
 });
 
 // --------------------------------------------------------------------------- //

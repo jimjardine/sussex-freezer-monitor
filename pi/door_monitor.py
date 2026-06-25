@@ -202,20 +202,33 @@ class Monitor:
     def load_doors(self) -> None:
         """Fetch enabled doors + settings from Supabase."""
         rows = self.sb.select("doors", {"enabled": "eq.true", "select": "*"})
+        seen = set()
         for r in rows:
+            seen.add(r["id"])
             d = self.doors.get(r["id"])
             if d:
                 d.name = r["name"]
                 d.open_threshold_seconds = r["open_threshold_seconds"]
                 d.realert_seconds = r["realert_seconds"]
-            else:
-                self.doors[r["id"]] = Door(
+                if d.gpio_pin != r["gpio_pin"]:        # pin changed in dashboard
+                    d.gpio_pin = r["gpio_pin"]
+                    self._unbind_door(d)
+                    self._bind_door(d)
+            else:                                       # new door added in dashboard
+                d = Door(
                     id=r["id"],
                     name=r["name"],
                     gpio_pin=r["gpio_pin"],
                     open_threshold_seconds=r["open_threshold_seconds"],
                     realert_seconds=r["realert_seconds"],
                 )
+                self.doors[d.id] = d
+                self._bind_door(d)
+        # Drop doors that were deleted or disabled in the dashboard.
+        for door_id in list(self.doors):
+            if door_id not in seen:
+                self._unbind_door(self.doors[door_id])
+                del self.doors[door_id]
         settings = self.sb.select("settings", {"id": "eq.1", "select": "alert_emails"})
         if settings:
             self.alert_emails = settings[0].get("alert_emails") or []
@@ -224,18 +237,31 @@ class Monitor:
     def setup_gpio(self) -> None:
         if self.mock:
             log("MOCK GPIO mode — type a door's GPIO pin number + Enter to toggle it. Ctrl-C to quit.")
+
+    def _bind_door(self, door: Door) -> None:
+        """Start watching a door's GPIO pin (no-op in mock mode or if already bound)."""
+        if self.mock or door._button is not None:
             return
         from gpiozero import Button  # imported here so dev machines don't need it
+        # pull_up=True: pin idles HIGH; pressed (LOW) == door closed. We poll
+        # is_pressed in the main loop (edge callbacks occasionally miss changes).
+        door._button = Button(door.gpio_pin, pull_up=True, bounce_time=0.05)
+        door.is_open = not door._button.is_pressed
+        if door.is_open:
+            door.opened_at = time.monotonic()
+            door.last_alert_at = None
+            self._log_event(door, "open")
+        log(f"Monitoring '{door.name}' on GPIO{door.gpio_pin}: {'OPEN' if door.is_open else 'closed'}")
 
-        for door in self.doors.values():
-            # pull_up=True: pin idles HIGH; pressed (LOW) == door closed.
-            # We poll is_pressed in the main loop rather than using edge callbacks
-            # (when_pressed/when_released occasionally miss transitions); polling
-            # the level every cycle is rock-solid, like pinscan.py.
-            btn = Button(door.gpio_pin, pull_up=True, bounce_time=0.05)
-            door._button = btn
-            door.is_open = not btn.is_pressed  # pressed == closed
-            log(f"Door '{door.name}' on GPIO{door.gpio_pin}: {'OPEN' if door.is_open else 'closed'}")
+    def _unbind_door(self, door: Door) -> None:
+        """Stop watching a door's pin (when it's deleted or disabled in the dashboard)."""
+        if door._button is not None:
+            try:
+                door._button.close()
+            except Exception:  # noqa: BLE001
+                pass
+            door._button = None
+        log(f"Stopped monitoring '{door.name}' (GPIO{door.gpio_pin})")
 
     def _make_handler(self, door_id: str, opened: bool):
         def handler():
@@ -245,9 +271,8 @@ class Monitor:
     # -- main loops -------------------------------------------------------- #
 
     def run(self) -> None:
-        self.load_doors()
         self.setup_gpio()
-        self._record_initial_states()
+        self.load_doors()   # fetches doors and binds their GPIO pins (logs initial state)
 
         threading.Thread(target=self._flusher_loop, daemon=True).start()
         threading.Thread(target=self._heartbeat_loop, daemon=True).start()
@@ -276,13 +301,6 @@ class Monitor:
             self._check_thresholds()
             # Poll GPIO frequently for snappy response (cap config value at 0.2s).
             self._stop.wait(min(self.poll_seconds, 0.2))
-
-    def _record_initial_states(self) -> None:
-        now = time.monotonic()
-        for door in self.doors.values():
-            if door.is_open:
-                door.opened_at = now
-                self._log_event(door, "open")
 
     def _on_transition(self, door_id: str, opened: bool) -> None:
         door = self.doors.get(door_id)
