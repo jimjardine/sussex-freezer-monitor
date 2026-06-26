@@ -211,8 +211,8 @@ class Monitor:
                 d.open_threshold_seconds = r["open_threshold_seconds"]
                 d.realert_seconds = r["realert_seconds"]
                 if d.gpio_pin != r["gpio_pin"]:        # pin changed in dashboard
+                    self._unbind_door(d)               # release the old pin first
                     d.gpio_pin = r["gpio_pin"]
-                    self._unbind_door(d)
                     self._bind_door(d)
             else:                                       # new door added in dashboard
                 d = Door(

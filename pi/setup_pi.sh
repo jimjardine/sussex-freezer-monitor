@@ -10,14 +10,20 @@ REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_DIR"
 echo "Repo: $REPO_DIR"
 
-# 1. System packages needed by gpiozero's lgpio backend.
+# 1. System packages + a GPIO backend for gpiozero.
+#    Bookworm has python3-lgpio; Bullseye (older) only has python3-rpi.gpio.
+#    Install whichever exist; don't fail if one is missing.
 echo "== apt packages =="
 sudo apt-get update -y
-sudo apt-get install -y python3-venv python3-pip python3-lgpio
+sudo apt-get install -y python3-venv python3-pip
+sudo apt-get install -y python3-rpi.gpio || true   # Bullseye backend
+sudo apt-get install -y python3-lgpio    || true   # Bookworm backend
 
 # 2. Python virtualenv + deps.
+#    --system-site-packages lets the venv use the apt-installed GPIO backend
+#    (RPi.GPIO / lgpio) which is hard to pip-build on the Pi.
 echo "== python venv =="
-if [ ! -d .venv ]; then python3 -m venv .venv; fi
+if [ ! -d .venv ]; then python3 -m venv --system-site-packages .venv; fi
 .venv/bin/pip install --upgrade pip
 .venv/bin/pip install -r pi/requirements.txt
 

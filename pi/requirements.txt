@@ -1,4 +1,5 @@
-requests>=2.31
-gpiozero>=2.0
-# gpiozero needs a pin backend on the Pi; lgpio is the default on Pi OS Bookworm.
-lgpio>=0.2; platform_machine == "aarch64" or platform_machine == "armv7l"
+# Installed into the venv (created with --system-site-packages by setup_pi.sh).
+# The GPIO backend (RPi.GPIO on Bullseye, lgpio on Bookworm) comes from apt and
+# is seen via system-site-packages — we don't pip-build it here.
+requests>=2.25
+gpiozero>=1.6
