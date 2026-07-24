@@ -139,6 +139,8 @@ h3 { margin-top: 22px; margin-bottom: 6px; }
 #new-door-pin { width: 90px; }
 #new-door-limit { width: 110px; }
 .s-delete { color: var(--bad); }
+.gpio-toggle { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+.gpio-toggle input { width: auto; padding: 0; }
 code { background: #0f1a2e; padding: 1px 6px; border-radius: 6px; }
 
 @media (max-width: 600px) {

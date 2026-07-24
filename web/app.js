@@ -13,6 +13,25 @@ let lastEventByDoor = {};       // door_id -> { event_type, created_at }
 let tickTimer = null;
 
 // --------------------------------------------------------------------------- //
+// GPIO visibility (hidden by default so staff can't mess with wiring pins)
+// --------------------------------------------------------------------------- //
+
+const GPIO_VISIBLE_KEY = "freezerMonitor.showGpio";
+let showGpio = localStorage.getItem(GPIO_VISIBLE_KEY) === "1";
+
+function applyGpioVisibility() {
+  $$(".gpio-only").forEach((el) => el.classList.toggle("hidden", !showGpio));
+}
+
+$("#toggle-gpio").checked = showGpio;
+$("#toggle-gpio").addEventListener("change", (e) => {
+  showGpio = e.target.checked;
+  localStorage.setItem(GPIO_VISIBLE_KEY, showGpio ? "1" : "0");
+  applyGpioVisibility();
+});
+applyGpioVisibility();
+
+// --------------------------------------------------------------------------- //
 // Auth
 // --------------------------------------------------------------------------- //
 
@@ -130,9 +149,10 @@ function renderDoors() {
       <h3>${escapeHtml(d.name)}</h3>
       <div class="door-state"></div>
       <div class="timer"></div>
-      <div class="limit">Limit: ${Math.round(d.open_threshold_seconds / 60)} min · GPIO${d.gpio_pin}</div>`;
+      <div class="limit">Limit: ${Math.round(d.open_threshold_seconds / 60)} min <span class="gpio-only">· GPIO${d.gpio_pin}</span></div>`;
     grid.appendChild(card);
   }
+  applyGpioVisibility();
   tick();
 }
 
@@ -262,13 +282,14 @@ async function renderSettings() {
     tr.dataset.doorId = d.id;
     tr.innerHTML = `
       <td><input class="s-name" value="${escapeAttr(d.name)}" /></td>
-      <td><input class="s-pin" type="number" value="${d.gpio_pin}" style="width:80px" /></td>
+      <td class="gpio-only"><input class="s-pin" type="number" value="${d.gpio_pin}" style="width:80px" /></td>
       <td><input class="s-limit" type="number" min="1" value="${Math.round(d.open_threshold_seconds / 60)}" style="width:80px" /></td>
       <td><input class="s-enabled" type="checkbox" ${d.enabled ? "checked" : ""} /></td>
       <td><button class="link s-delete" title="Delete this door">🗑 Delete</button></td>`;
     tr.querySelector(".s-delete").addEventListener("click", () => deleteDoor(d.id, d.name));
     body.appendChild(tr);
   }
+  applyGpioVisibility();
 }
 
 async function deleteDoor(id, name) {
